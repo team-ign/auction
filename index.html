@@ -8,7 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Font: Prompt & Noto Sans Thai -->
+    <!-- Google Font: Prompt -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -30,7 +30,7 @@
                             green: '#7A8B7B',    // Soft muted green for success
                             greenHover: '#657466',
                             lightBg: '#EFECE6',  // Subtle greyish beige
-                            border: '#E2DEC'
+                            border: '#E2DEC8'
                         }
                     },
                     fontFamily: {
@@ -72,13 +72,15 @@
         .muji-btn-secondary:hover {
             background-color: #657466;
         }
-        /* Hide scrollbars for slick modern look */
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
+        /* Skeleton Animation */
+        .skeleton {
+            background: linear-gradient(90deg, #EFECE6 25%, #F7F5F0 50%, #EFECE6 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
         }
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
         }
     </style>
 </head>
@@ -114,6 +116,11 @@
             <p class="text-sm text-gray-500 font-light leading-relaxed">
                 ร่วมเสนอราคาที่ถูกกว่าจากผู้เสนอราคาก่อนหน้า คุณสามารถเสนอราคาที่ถูกลงเรื่อยๆ หรือกดรับราคานี้ได้ทันที
             </p>
+            <!-- Syncing indicator status -->
+            <div id="loadingStatus" class="mt-2 text-xs text-muji-accent flex items-center justify-center gap-1.5">
+                <i class="fas fa-spinner fa-spin"></i>
+                <span>กำลังโหลดข้อมูลราคาล่าสุดจากระบบ...</span>
+            </div>
         </div>
 
         <!-- Product Grid -->
@@ -305,7 +312,7 @@
          * 1. GOOGLE SHEETS INTEGRATION CONFIGURATION
          * =================================================================
          */
-        const GOOGLE_SHEET_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwN_3sK8_Wc0bvqNRdikQPXCIlkLOPfF2alU82tquwrlGMgN2VyNtG54D_Hbtx3em4/exec"; 
+        const GOOGLE_SHEET_WEB_APP_URL = ""; 
 
         /**
          * =================================================================
@@ -319,18 +326,18 @@
                 subtitle: "ฟิลเลอร์อิตาลี รุ่นตัวแข็ง เหมาะกับฉีดคาง ขมับ แก้มส้ม ยกหน้า ร่องแก้ม (EXP: Dec2026)",
                 quota: 2,           
                 image: "https://res.cloudinary.com/yuyprw6e/image/upload/v1792953760/Products_10.png",
-                startPrice: 15900,
-                minPrice: 9900,
-                currentPrice: 15900,
+                startPrice: 15900,  
+                minPrice: 9900,     
+                currentPrice: 15900, 
                 lastBidderName: "-",
-                lastBidderPhone: "-",
+                lastBidderPhone: "-", 
                 lastBidTimestamp: 0
             },
             {
                 id: "prod-002",
-                name: "Definisse® Core 1 cc [สาขาซีคอน]",
-                subtitle: "ฟิลเลอร์อิตาลี รุ่นตัวแข็ง เหมาะกับฉีดคาง ขมับ แก้มส้ม ยกหน้า ร่องแก้ม (EXP: Dec2026)",
-                quota: 2,           
+                name: "Ultraformer III Full Face (สาขาเมืองเอก)",
+                subtitle: "ยกกระชับกรอบหน้า ปรับผิวกระชับ 300 ช็อต",
+                quota: 5,           
                 image: "https://res.cloudinary.com/yuyprw6e/image/upload/v1792953760/Products_10.png",
                 startPrice: 15900,
                 minPrice: 9900,
@@ -341,18 +348,69 @@
             }
         ];
 
-        let bidHistoryLogs = {};
+        // Load bid throttling log from LocalStorage so refresh doesn't reset anti-spam rules
+        let bidHistoryLogs = JSON.parse(localStorage.getItem('bidHistoryLogs') || '{}');
+
+        function saveLogsToLocalStorage() {
+            localStorage.setItem('bidHistoryLogs', JSON.stringify(bidHistoryLogs));
+        }
 
         // Censor phone number format: 0812345678 -> XXXX-XXX-5678
         function censorPhone(phone) {
-            if (!phone || phone === "-" || phone.length < 10) return "-";
-            const last4 = phone.slice(-4);
+            if (!phone || phone === "-" || phone.toString().length < 10) return "-";
+            const cleanPhone = phone.toString().replace(/[^0-9]/g, '');
+            const last4 = cleanPhone.slice(-4);
             return `XXXX-XXX-${last4}`;
         }
 
         // Format currency THB
         function formatTHB(val) {
             return '฿' + Number(val).toLocaleString('th-TH');
+        }
+
+        // FETCH LATEST DATA FROM GOOGLE SHEET
+        async function fetchLatestPricesFromSheet() {
+            const statusDiv = document.getElementById('loadingStatus');
+            if (!GOOGLE_SHEET_WEB_APP_URL || GOOGLE_SHEET_WEB_APP_URL === "") {
+                if (statusDiv) statusDiv.classList.add('hidden');
+                renderProducts();
+                return;
+            }
+
+            try {
+                const res = await fetch(GOOGLE_SHEET_WEB_APP_URL);
+                const result = await res.json();
+                
+                if (result.result === "success" && result.data && result.data.length > 1) {
+                    const rows = result.data.slice(1); // skip header
+                    
+                    // Loop through each product and find latest bid & claimed status
+                    productsData.forEach(prod => {
+                        const prodRows = rows.filter(r => r[2] === prod.id);
+                        if (prodRows.length > 0) {
+                            // Find latest bid
+                            const bidRows = prodRows.filter(r => r[1] === "NEW_LOWER_PRICE_BID");
+                            if (bidRows.length > 0) {
+                                const lastBid = bidRows[bidRows.length - 1];
+                                prod.currentPrice = parseInt(lastBid[6]) || prod.currentPrice;
+                                prod.lastBidderName = lastBid[4] || "-";
+                                prod.lastBidderPhone = lastBid[5] ? lastBid[5].toString().replace("'", "") : "-";
+                            }
+
+                            // Calculate total claims to update quota
+                            const claimRows = prodRows.filter(r => r[1] === "CLAIM_PRICE");
+                            if (claimRows.length > 0) {
+                                prod.quota = Math.max(0, prod.quota - claimRows.length);
+                            }
+                        }
+                    });
+                }
+            } catch (err) {
+                console.warn("Could not fetch sync data from Google Sheet:", err);
+            } finally {
+                if (statusDiv) statusDiv.classList.add('hidden');
+                renderProducts();
+            }
         }
 
         // RENDER PRODUCTS GRID
@@ -512,6 +570,7 @@
             prod.lastBidTimestamp = now;
 
             bidHistoryLogs[logKey] = now;
+            saveLogsToLocalStorage();
 
             saveToGoogleSheet({
                 action: "NEW_LOWER_PRICE_BID",
@@ -569,7 +628,8 @@
                 return;
             }
 
-            if (prod.lastBidderPhone !== "-" && prod.lastBidderPhone !== phone) {
+            const cleanLastPhone = prod.lastBidderPhone ? prod.lastBidderPhone.toString().replace(/[^0-9]/g, '') : "-";
+            if (cleanLastPhone !== "-" && cleanLastPhone !== phone) {
                 errDiv.innerText = `เบอร์โทรศัพท์ไม่ตรงกับผู้เสนอราคาล่าสุด (${censorPhone(prod.lastBidderPhone)})`;
                 errDiv.classList.remove('hidden');
                 return;
@@ -586,7 +646,7 @@
                 name: bidderName,
                 phone: phone,
                 finalPrice: prod.currentPrice,
-                remainingQuota: prod.quota,
+                quota: prod.quota,
                 timestamp: new Date().toISOString()
             });
 
@@ -654,7 +714,7 @@
 
         // INITIAL LOAD
         window.onload = function() {
-            renderProducts();
+            fetchLatestPricesFromSheet();
         };
     </script>
 </body>
