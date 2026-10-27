@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบเสนอราคา - Muji Style</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Font: Prompt & Noto Sans Thai -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- html2canvas for generating saveable voucher image -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        muji: {
+                            bg: '#F7F5F0',       // Warm off-white / light beige
+                            card: '#FFFFFF',     // Clean white
+                            text: '#4A4A4A',     // Soft charcoal
+                            dark: '#2D2D2D',     // Deep slate text
+                            accent: '#8C7A6B',   // Warm taupe/wood tone
+                            accentHover: '#756456',
+                            green: '#7A8B7B',    // Soft muted green for success
+                            greenHover: '#657466',
+                            lightBg: '#EFECE6',  // Subtle greyish beige
+                            border: '#E2DEC'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Prompt', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #F7F5F0;
+            color: #4A4A4A;
+            font-family: 'Prompt', sans-serif;
+        }
+        .muji-card {
+            background-color: #FFFFFF;
+            border: 1px solid #EAE6DF;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
+            transition: all 0.2s ease-in-out;
+        }
+        .muji-card:hover {
+            box-shadow: 0 8px 25px -4px rgba(0, 0, 0, 0.06);
+        }
+        .muji-btn-primary {
+            background-color: #8C7A6B;
+            color: #FFFFFF;
+            transition: background-color 0.2s;
+        }
+        .muji-btn-primary:hover {
+            background-color: #756456;
+        }
+        .muji-btn-secondary {
+            background-color: #7A8B7B;
+            color: #FFFFFF;
+            transition: background-color 0.2s;
+        }
+        .muji-btn-secondary:hover {
+            background-color: #657466;
+        }
+        /* Hide scrollbars for slick modern look */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Header / Navbar -->
+    <header class="bg-white/80 backdrop-blur-md border-b border-[#EAE6DF] sticky top-0 z-30">
+        <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="w-8 h-8 rounded-full bg-[#8C7A6B] flex items-center justify-center text-white text-xs font-semibold">
+                    M
+                </div>
+                <div>
+                    <h1 class="text-lg font-medium tracking-wide text-muji-dark leading-tight">ระบบเสนอราคาออนไลน์</h1>
+                    <p class="text-xs text-gray-400 font-light">เสนอราคาที่ถูกกว่า เพื่อรับสิทธิ์ซื้อสินค้าในราคาพิเศษ</p>
+                </div>
+            </div>
+            <a href="https://lin.ee/SHnHL7Y" target="_blank" rel="noopener noreferrer" 
+               class="text-xs text-muji-accent border border-muji-accent/30 px-3 py-1.5 rounded-full hover:bg-muji-accent hover:text-white transition flex items-center gap-1.5">
+                <i class="fab font-semibold fa-line text-sm"></i>
+                <span>ติดต่อเรา</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-grow max-w-4xl w-full mx-auto px-4 py-8">
+        
+        <!-- Header Banner -->
+        <div class="mb-8 text-center max-w-xl mx-auto">
+            <span class="text-xs uppercase tracking-widest text-muji-accent font-medium bg-[#EFECE6] px-3 py-1 rounded-full">SPECIAL OFFER</span>
+            <h2 class="text-2xl font-normal text-muji-dark mt-3 mb-2">เสนอราคาที่ถูกกว่า</h2>
+            <p class="text-sm text-gray-500 font-light leading-relaxed">
+                ร่วมเสนอราคาที่ถูกกว่าจากผู้เสนอราคาก่อนหน้า คุณสามารถเสนอราคาที่ถูกลงเรื่อยๆ หรือกดรับราคานี้ได้ทันที
+            </p>
+        </div>
+
+        <!-- Product Grid -->
+        <div id="productGrid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Dynamic products rendered via JS -->
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-[#EAE6DF] py-6 text-center text-xs text-gray-400 mt-12">
+        <p>© 2026 Special Offer System. Minimal & Transparent.</p>
+    </footer>
+
+    <!-- MODAL 1: เสนอราคาที่ถูกกว่า (Bidding Modal) -->
+    <div id="bidModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl relative animate-fadeIn">
+            <button onclick="closeBidModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times text-lg"></i>
+            </button>
+            
+            <div class="mb-5">
+                <span class="text-xs text-muji-accent font-medium tracking-wider uppercase">เสนอราคาที่ถูกกว่า</span>
+                <h3 id="modalProductName" class="text-lg font-normal text-muji-dark mt-0.5">ชื่อสินค้า</h3>
+            </div>
+
+            <div class="bg-[#F7F5F0] p-3.5 rounded-xl mb-5 space-y-1.5 text-xs text-gray-600">
+                <div class="flex justify-between">
+                    <span>ราคาล่าสุดปัจจุบัน:</span>
+                    <span id="modalCurrentPrice" class="font-semibold text-muji-dark text-sm">฿0</span>
+                </div>
+                <div class="flex justify-between text-gray-500">
+                    <span>เงื่อนไข:</span>
+                    <span class="text-muji-accent font-medium">เสนอราคาต่ำลงได้สูงสุดถึง 999 บาท</span>
+                </div>
+            </div>
+
+            <form id="bidForm" onsubmit="handleBidSubmit(event)" class="space-y-4">
+                <input type="hidden" id="bidProductId">
+                
+                <div>
+                    <label class="block text-xs text-gray-600 mb-1 font-medium">ชื่อผู้เสนอราคา <span class="text-red-400">*</span></label>
+                    <input type="text" id="bidName" required placeholder="กรอกชื่อของคุณ" 
+                           class="w-full text-sm px-3.5 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:border-muji-accent transition bg-white">
+                </div>
+
+                <div>
+                    <label class="block text-xs text-gray-600 mb-1 font-medium">เบอร์โทรศัพท์ (10 หลัก ตัวเลขเท่านั้น) <span class="text-red-400">*</span></label>
+                    <input type="tel" id="bidPhone" required maxlength="10" pattern="[0-9]{10}" placeholder="0812345678" 
+                           class="w-full text-sm px-3.5 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:border-muji-accent transition bg-white">
+                    <p class="text-[11px] text-gray-400 mt-1">* เบอร์โทรเดียวกันสามารถเสนอราคาซ้ำได้ทุก 1 ชั่วโมง</p>
+                </div>
+
+                <div>
+                    <label class="block text-xs text-gray-600 mb-1 font-medium">ราคาใหม่ที่ต้องการเสนอ (บาท) <span class="text-red-400">*</span></label>
+                    <input type="number" id="bidAmount" required placeholder="ระบุราคาที่ถูกกว่า" 
+                           class="w-full text-sm px-3.5 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:border-muji-accent transition bg-white font-medium text-muji-dark">
+                    <p id="priceHint" class="text-[11px] text-muji-accent mt-1"></p>
+                </div>
+
+                <div id="bidErrorMessage" class="text-xs text-red-500 hidden bg-red-50 p-2.5 rounded-lg border border-red-100"></div>
+
+                <div class="pt-2 flex gap-3">
+                    <button type="button" onclick="closeBidModal()" class="w-1/3 py-2.5 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition">ยกเลิก</button>
+                    <button type="submit" id="submitBidBtn" class="w-2/3 py-2.5 rounded-lg muji-btn-primary text-sm font-medium shadow-sm flex items-center justify-center gap-2">
+                        <span>ยืนยันเสนอราคาที่ถูกกว่า</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 2: ยืนยันรับราคานี้ (Claim Price Modal) -->
+    <div id="claimModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl relative">
+            <button onclick="closeClaimModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times text-lg"></i>
+            </button>
+            
+            <div class="mb-5">
+                <span class="text-xs text-muji-green font-medium tracking-wider uppercase">ยืนยันสิทธิ์รับราคานี้</span>
+                <h3 id="claimProductName" class="text-lg font-normal text-muji-dark mt-0.5">ชื่อสินค้า</h3>
+            </div>
+
+            <div class="bg-[#F7F5F0] p-4 rounded-xl mb-5 text-center">
+                <span class="text-xs text-gray-500 block mb-1">ราคาที่จะได้รับสิทธิ์</span>
+                <span id="claimProductPrice" class="text-2xl font-medium text-muji-dark">฿0</span>
+            </div>
+
+            <form id="claimForm" onsubmit="handleClaimSubmit(event)" class="space-y-4">
+                <input type="hidden" id="claimProductId">
+                
+                <div>
+                    <label class="block text-xs text-gray-600 mb-1 font-medium">ยืนยันเบอร์โทรศัพท์ของคุณ (เต็ม 10 หลัก) <span class="text-red-400">*</span></label>
+                    <input type="tel" id="claimPhone" required maxlength="10" pattern="[0-9]{10}" placeholder="0812345678" 
+                           class="w-full text-sm px-3.5 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:border-muji-green transition bg-white">
+                    <p class="text-[11px] text-gray-400 mt-1">* กรอกเบอร์ให้ตรงกับที่เคยเสนอราคาไว้เพื่อยืนยันตัวตน</p>
+                </div>
+
+                <div id="claimErrorMessage" class="text-xs text-red-500 hidden bg-red-50 p-2.5 rounded-lg border border-red-100"></div>
+
+                <div class="pt-2 flex gap-3">
+                    <button type="button" onclick="closeClaimModal()" class="w-1/3 py-2.5 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition">ยกเลิก</button>
+                    <button type="submit" class="w-2/3 py-2.5 rounded-lg muji-btn-secondary text-sm font-medium shadow-sm flex items-center justify-center gap-2">
+                        <span>ตรวจสอบ & สร้างคูปอง</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 3: แสดงคูปองสำหรับแคปหน้าจอ (Voucher Confirmation Modal) -->
+    <div id="voucherModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl relative my-8">
+            <button onclick="closeVoucherModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 z-10">
+                <i class="fas fa-times text-lg"></i>
+            </button>
+            
+            <div class="text-center mb-4">
+                <h3 class="text-base font-medium text-muji-dark">สิทธิ์รับราคาของคุณ</h3>
+                <p class="text-xs text-gray-400">บันทึกรูปภาพหรือแคปหน้าจอนี้เพื่อส่งใน LINE</p>
+            </div>
+
+            <!-- Voucher Box to Render/Capture -->
+            <div id="voucherCard" class="bg-[#F7F5F0] border border-[#EAE6DF] rounded-xl p-5 text-muji-dark relative overflow-hidden mb-5">
+                <!-- Stamp element -->
+                <div class="absolute -right-6 -bottom-6 w-24 h-24 border-2 border-muji-accent/20 rounded-full flex items-center justify-center rotate-12 pointer-events-none">
+                    <span class="text-[10px] uppercase font-bold text-muji-accent/40 tracking-widest">CONFIRMED</span>
+                </div>
+
+                <div class="flex items-center justify-between border-b border-[#E2DEC8] pb-3 mb-3">
+                    <div class="flex items-center gap-2">
+                        <div class="w-6 h-6 rounded-full bg-muji-accent text-white flex items-center justify-center text-[10px] font-bold">M</div>
+                        <span class="text-xs font-medium tracking-wide">SPECIAL OFFER</span>
+                    </div>
+                    <span id="vDate" class="text-[10px] text-gray-400">2026-10-28</span>
+                </div>
+
+                <div class="space-y-3">
+                    <div>
+                        <span class="text-[10px] text-gray-400 block uppercase">รายการสินค้า</span>
+                        <p id="vProductName" class="text-sm font-medium text-muji-dark leading-tight mt-0.5">Definisse® Core 1 cc สาขาทิพวัล</p>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 pt-1">
+                        <div>
+                            <span class="text-[10px] text-gray-400 block uppercase">ผู้ได้รับสิทธิ์</span>
+                            <p id="vName" class="text-xs font-medium text-gray-700">คุณสมชาย</p>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-gray-400 block uppercase">เบอร์โทรศัพท์</span>
+                            <p id="vPhone" class="text-xs font-medium text-gray-700">0812345678</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-3 rounded-lg border border-[#E2DEC8] text-center mt-2">
+                        <span class="text-[10px] text-gray-400 block">ราคาที่ได้รับสิทธิ์</span>
+                        <span id="vPrice" class="text-2xl font-semibold text-muji-accent">฿12,500</span>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-3 border-t border-dashed border-[#E2DEC8] text-center">
+                    <p class="text-[9px] text-gray-400">กรุณาส่งรูปนี้ให้แอดมินผ่านทาง LINE เพื่อยืนยันการใช้สิทธิ์</p>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="space-y-2.5">
+                <button onclick="downloadVoucherImage()" id="downloadBtn" 
+                        class="w-full py-2.5 bg-gray-800 text-white rounded-lg text-xs font-medium hover:bg-black transition flex items-center justify-center gap-2 shadow-sm">
+                    <i class="fas fa-download"></i>
+                    <span>ดาวน์โหลดรูปภาพคูปอง</span>
+                </button>
+                
+                <a href="https://lin.ee/SHnHL7Y" target="_blank" rel="noopener noreferrer" 
+                   class="w-full py-2.5 muji-btn-secondary rounded-lg text-xs font-medium transition flex items-center justify-center gap-2 shadow-sm">
+                    <i class="fab fa-line text-sm"></i>
+                    <span>ไปยัง LINE Official Account</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        /**
+         * =================================================================
+         * 1. GOOGLE SHEETS INTEGRATION CONFIGURATION
+         * =================================================================
+         */
+        const GOOGLE_SHEET_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwN_3sK8_Wc0bvqNRdikQPXCIlkLOPfF2alU82tquwrlGMgN2VyNtG54D_Hbtx3em4/exec"; 
+
+        /**
+         * =================================================================
+         * 2. INITIAL PRODUCTS DATA
+         * =================================================================
+         */
+        let productsData = [
+            {
+                id: "prod-001",
+                name: "Definisse® Core 1 cc [สาขาทิพวัล]",
+                subtitle: "ฟิลเลอร์อิตาลี รุ่นตัวแข็ง เหมาะกับฉีดคาง ขมับ แก้มส้ม ยกหน้า ร่องแก้ม (EXP: Dec2026)",
+                quota: 2,           
+                image: "https://res.cloudinary.com/yuyprw6e/image/upload/v1792953760/Products_10.png",
+                startPrice: 15900,  
+                minPrice: 9900,     
+                currentPrice: 15900, 
+                lastBidderName: "-",
+                lastBidderPhone: "-", 
+                lastBidTimestamp: 0
+            },
+            {
+                id: "prod-002",
+                name: "Definisse® Core 1 cc [สาขาซีคอน]",
+                subtitle: "ฟิลเลอร์อิตาลี รุ่นตัวแข็ง เหมาะกับฉีดคาง ขมับ แก้มส้ม ยกหน้า ร่องแก้ม (EXP: Dec2026)",
+                quota: 2,           
+                image: "https://images.unsplash.com/photo-1512290900673-7002fa548e3b?auto=format&fit=crop&w=600&q=80",
+                startPrice: 15900,
+                minPrice: 9900,
+                currentPrice: 11500,
+                lastBidderName: "-",
+                lastBidderPhone: "-",
+                lastBidTimestamp: 0
+            }
+        ];
+
+        let bidHistoryLogs = {};
+
+        // Censor phone number format: 0812345678 -> XXXX-XXX-5678
+        function censorPhone(phone) {
+            if (!phone || phone === "-" || phone.length < 10) return "-";
+            const last4 = phone.slice(-4);
+            return `XXXX-XXX-${last4}`;
+        }
+
+        // Format currency THB
+        function formatTHB(val) {
+            return '฿' + Number(val).toLocaleString('th-TH');
+        }
+
+        // RENDER PRODUCTS GRID
+        function renderProducts() {
+            const container = document.getElementById('productGrid');
+            container.innerHTML = '';
+
+            productsData.forEach(prod => {
+                const censoredPhone = censorPhone(prod.lastBidderPhone);
+                const isSoldOut = prod.quota <= 0;
+                
+                const cardHtml = `
+                    <div class="muji-card overflow-hidden flex flex-col justify-between ${isSoldOut ? 'opacity-75' : ''}">
+                        <div>
+                            <!-- Product Image -->
+                            <div class="relative h-48 bg-gray-100 overflow-hidden">
+                                <img src="${prod.image}" alt="${prod.name}" 
+                                     class="w-full h-full object-cover transition-transform duration-500 hover:scale-105 ${isSoldOut ? 'grayscale' : ''}"
+                                     onerror="this.src='https://placehold.co/600x400/EFECE6/8C7A6B?text=Product+Image'">
+                                
+                                <div class="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-md text-[11px] font-medium text-muji-dark border border-black/5 flex gap-2">
+                                    <span class="text-gray-400 line-through">ราคาปกติ ${formatTHB(prod.startPrice)}</span>
+                                </div>
+
+                                <!-- Quota Tag -->
+                                <div class="absolute top-3 right-3 ${isSoldOut ? 'bg-red-500 text-white' : 'bg-[#8C7A6B] text-white'} backdrop-blur-sm px-2.5 py-1 rounded-md text-[11px] font-medium shadow-sm flex items-center gap-1.5">
+                                    <i class="fas fa-box-archive text-[10px]"></i>
+                                    <span>${isSoldOut ? 'โควต้าหมดแล้ว' : `เหลือโควต้า ${prod.quota} สิทธิ์`}</span>
+                                </div>
+                            </div>
+
+                            <!-- Content Details -->
+                            <div class="p-5 space-y-3">
+                                <div class="flex justify-between items-start gap-2">
+                                    <div>
+                                        <h3 class="font-medium text-base text-muji-dark leading-snug">${prod.name}</h3>
+                                        <p class="text-xs text-gray-400 mt-1 font-light">${prod.subtitle}</p>
+                                    </div>
+                                </div>
+
+                                <div class="bg-[#F7F5F0] rounded-xl p-3.5 space-y-2 border border-[#EAE6DF]">
+                                    <div class="flex justify-between items-baseline">
+                                        <span class="text-xs text-gray-500">ราคาล่าสุดปัจจุบัน:</span>
+                                        <span class="text-xl font-semibold text-muji-accent">${formatTHB(prod.currentPrice)}</span>
+                                    </div>
+                                    <div class="flex justify-between items-center text-xs pt-1 border-t border-[#E2DEC8]/50 text-gray-500">
+                                        <span>ผู้เสนอราคาล่าสุด:</span>
+                                        <div class="text-right">
+                                            <span class="font-medium text-muji-dark">${prod.lastBidderName}</span>
+                                            <span class="text-[11px] text-gray-400 block">${censoredPhone}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="px-5 pb-5 pt-1 grid grid-cols-2 gap-2.5">
+                            <button onclick="openBidModal('${prod.id}')" ${isSoldOut ? 'disabled' : ''}
+                                    class="py-2.5 px-3 rounded-lg muji-btn-primary text-xs font-medium flex items-center justify-center gap-1.5 shadow-sm ${isSoldOut ? 'opacity-50 cursor-not-allowed' : ''}">
+                                <i class="fas fa-tag text-xs"></i>
+                                <span>เสนอราคาที่ถูกกว่า</span>
+                            </button>
+                            
+                            <button onclick="openClaimModal('${prod.id}')" ${isSoldOut ? 'disabled' : ''}
+                                    class="py-2.5 px-3 rounded-lg muji-btn-secondary text-xs font-medium flex items-center justify-center gap-1.5 shadow-sm ${isSoldOut ? 'opacity-50 cursor-not-allowed' : ''}">
+                                <i class="fas fa-check-circle text-xs"></i>
+                                <span>รับราคานี้</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += cardHtml;
+            });
+        }
+
+        // BIDDING LOGIC & MODAL
+        function openBidModal(productId) {
+            const prod = productsData.find(p => p.id === productId);
+            if (!prod) return;
+
+            const minAllowedBid = Math.max(prod.minPrice, prod.currentPrice - 999);
+            const maxAllowedBid = prod.currentPrice - 1;
+
+            document.getElementById('bidProductId').value = prod.id;
+            document.getElementById('modalProductName').innerText = prod.name;
+            document.getElementById('modalCurrentPrice').innerText = formatTHB(prod.currentPrice);
+            
+            const bidInput = document.getElementById('bidAmount');
+            bidInput.min = minAllowedBid;
+            bidInput.max = maxAllowedBid;
+            bidInput.value = '';
+
+            document.getElementById('priceHint').innerText = `เสนอราคาที่ถูกลงได้ตั้งแต่ ${formatTHB(minAllowedBid)} ถึง ${formatTHB(maxAllowedBid)}`;
+            
+            document.getElementById('bidErrorMessage').classList.add('hidden');
+            document.getElementById('bidModal').classList.remove('hidden');
+        }
+
+        function closeBidModal() {
+            document.getElementById('bidModal').classList.add('hidden');
+        }
+
+        function handleBidSubmit(e) {
+            e.preventDefault();
+            const prodId = document.getElementById('bidProductId').value;
+            const name = document.getElementById('bidName').value.trim();
+            const phone = document.getElementById('bidPhone').value.trim();
+            const amount = parseInt(document.getElementById('bidAmount').value);
+            const errDiv = document.getElementById('bidErrorMessage');
+            
+            errDiv.classList.add('hidden');
+
+            const prod = productsData.find(p => p.id === prodId);
+            if (!prod) return;
+
+            if (!/^[0-9]{10}$/.test(phone)) {
+                errDiv.innerText = "กรุณากรอกเบอร์โทรศัพท์เป็นตัวเลข 10 หลัก";
+                errDiv.classList.remove('hidden');
+                return;
+            }
+
+            const logKey = `${phone}_${prodId}`;
+            const lastTime = bidHistoryLogs[logKey];
+            const now = Date.now();
+            const ONE_HOUR = 60 * 60 * 1000;
+
+            if (lastTime && (now - lastTime) < ONE_HOUR) {
+                const remainingMinutes = Math.ceil((ONE_HOUR - (now - lastTime)) / (60 * 1000));
+                errDiv.innerText = `เบอร์นี้เพิ่งเสนอราคาไป กรุณารออีกประมาณ ${remainingMinutes} นาที จึงจะเสนอราคาซ้ำได้`;
+                errDiv.classList.remove('hidden');
+                return;
+            }
+
+            if (amount >= prod.currentPrice) {
+                errDiv.innerText = `ราคาที่เสนอต้องถูกกว่าราคาล่าสุด (${formatTHB(prod.currentPrice)})`;
+                errDiv.classList.remove('hidden');
+                return;
+            }
+
+            if ((prod.currentPrice - amount) > 999) {
+                const minLimit = prod.currentPrice - 999;
+                errDiv.innerText = `เสนอราคาต่ำลงได้สูงสุดถึง 999 บาท จากราคาล่าสุด (ราคาต่ำสุดที่เสนอได้รอบนี้คือ ${formatTHB(minLimit)})`;
+                errDiv.classList.remove('hidden');
+                return;
+            }
+
+            if (amount < prod.minPrice) {
+                errDiv.innerText = `ราคาที่เสนอต่ำเกินไป กรุณาเสนอราคาใหม่อีกครั้ง`;
+                errDiv.classList.remove('hidden');
+                return;
+            }
+
+            prod.currentPrice = amount;
+            prod.lastBidderName = name;
+            prod.lastBidderPhone = phone;
+            prod.lastBidTimestamp = now;
+
+            bidHistoryLogs[logKey] = now;
+
+            saveToGoogleSheet({
+                action: "NEW_LOWER_PRICE_BID",
+                productId: prod.id,
+                productName: prod.name,
+                name: name,
+                phone: phone,
+                amount: amount,
+                timestamp: new Date().toISOString()
+            });
+
+            renderProducts();
+            closeBidModal();
+            alert(`เสนอราคาสำเร็จ! ราคาใหม่ของ "${prod.name}" ถูกลงเหลือ ${formatTHB(amount)}`);
+        }
+
+        // CLAIM PRICE LOGIC & MODALS
+        function openClaimModal(productId) {
+            const prod = productsData.find(p => p.id === productId);
+            if (!prod) return;
+
+            document.getElementById('claimProductId').value = prod.id;
+            document.getElementById('claimProductName').innerText = prod.name;
+            document.getElementById('claimProductPrice').innerText = formatTHB(prod.currentPrice);
+            document.getElementById('claimPhone').value = '';
+            document.getElementById('claimErrorMessage').classList.add('hidden');
+
+            document.getElementById('claimModal').classList.remove('hidden');
+        }
+
+        function closeClaimModal() {
+            document.getElementById('claimModal').classList.add('hidden');
+        }
+
+        function handleClaimSubmit(e) {
+            e.preventDefault();
+            const prodId = document.getElementById('claimProductId').value;
+            const phone = document.getElementById('claimPhone').value.trim();
+            const errDiv = document.getElementById('claimErrorMessage');
+
+            errDiv.classList.add('hidden');
+
+            const prod = productsData.find(p => p.id === prodId);
+            if (!prod) return;
+
+            if (prod.quota <= 0) {
+                errDiv.innerText = "ขออภัย สินค้านี้โควต้าหมดแล้ว";
+                errDiv.classList.remove('hidden');
+                return;
+            }
+
+            if (!/^[0-9]{10}$/.test(phone)) {
+                errDiv.innerText = "กรุณากรอกเบอร์โทรศัพท์ 10 หลัก";
+                errDiv.classList.remove('hidden');
+                return;
+            }
+
+            if (prod.lastBidderPhone !== "-" && prod.lastBidderPhone !== phone) {
+                errDiv.innerText = `เบอร์โทรศัพท์ไม่ตรงกับผู้เสนอราคาล่าสุด (${censorPhone(prod.lastBidderPhone)})`;
+                errDiv.classList.remove('hidden');
+                return;
+            }
+
+            const bidderName = prod.lastBidderName !== "-" ? prod.lastBidderName : "ผู้รับสิทธิ์";
+
+            prod.quota -= 1;
+
+            saveToGoogleSheet({
+                action: "CLAIM_PRICE",
+                productId: prod.id,
+                productName: prod.name,
+                name: bidderName,
+                phone: phone,
+                finalPrice: prod.currentPrice,
+                remainingQuota: prod.quota,
+                timestamp: new Date().toISOString()
+            });
+
+            closeClaimModal();
+            renderProducts();
+
+            document.getElementById('vProductName').innerText = prod.name;
+            document.getElementById('vName').innerText = bidderName;
+            document.getElementById('vPhone').innerText = phone; 
+            document.getElementById('vPrice').innerText = formatTHB(prod.currentPrice);
+            
+            const today = new Date();
+            document.getElementById('vDate').innerText = today.toISOString().split('T')[0];
+
+            document.getElementById('voucherModal').classList.remove('hidden');
+        }
+
+        function closeVoucherModal() {
+            document.getElementById('voucherModal').classList.add('hidden');
+        }
+
+        // DOWNLOAD VOUCHER IMAGE USING HTML2CANVAS
+        function downloadVoucherImage() {
+            const card = document.getElementById('voucherCard');
+            const btn = document.getElementById('downloadBtn');
+            const originalText = btn.innerHTML;
+            
+            btn.innerText = 'กำลังสร้างรูปภาพ...';
+
+            html2canvas(card, {
+                scale: 3,
+                backgroundColor: '#F7F5F0',
+                useCORS: true
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `Voucher-${Date.now()}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                btn.innerHTML = originalText;
+            }).catch(err => {
+                console.error("Canvas error:", err);
+                btn.innerHTML = originalText;
+                alert("เกิดข้อผิดพลาดในการดาวน์โหลดรูปภาพ กรุณาใช้วิธีแคปหน้าจอแทน");
+            });
+        }
+
+        // SAVE DATA TO GOOGLE SHEETS
+        function saveToGoogleSheet(data) {
+            if (!GOOGLE_SHEET_WEB_APP_URL || GOOGLE_SHEET_WEB_APP_URL === "") {
+                console.log("[Simulation] Sheet Data Sent:", data);
+                return;
+            }
+
+            fetch(GOOGLE_SHEET_WEB_APP_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(data)
+            })
+            .then(() => console.log("Data saved to Google Sheet successfully"))
+            .catch(err => console.error("Error saving to Google Sheet:", err));
+        }
+
+        // INITIAL LOAD
+        window.onload = function() {
+            renderProducts();
+        };
+    </script>
+</body>
+</html>
